@@ -1,11 +1,14 @@
 /**
  * Converts a decimal number string (integer or float) to a binary string.
- * Uses repeated division by 2 for integers and repeated multiplication by 2 for fractions.
- * Handles inputs like "13.375", ".375", and "13".
+ * - Positive integers and floats: standard binary representation.
+ * - Negative integers: 8-bit Two's Complement representation.
+ * - Negative floats: not supported.
  */
 package ca_lecture_01;
 
 public class DecimalToBinaryConverter {
+
+    private static final int BIT_WIDTH = 8;
 
     public String convert(String decimalStr, int precision) {
         if (decimalStr == null || decimalStr.trim().isEmpty()) {
@@ -13,6 +16,23 @@ public class DecimalToBinaryConverter {
         }
 
         decimalStr = decimalStr.trim();
+
+        if (decimalStr.startsWith("-") && decimalStr.contains(".")) {
+            throw new IllegalArgumentException("Negative floating-point numbers are not supported.");
+        }
+
+        if (decimalStr.startsWith("-") && !decimalStr.contains(".")) {
+            try {
+                int integerNum = Integer.parseInt(decimalStr);
+                if (integerNum < -128 || integerNum > 127) {
+                    throw new IllegalArgumentException("Number out of 8-bit signed range [-128, 127]: " + integerNum);
+                }
+                return convertNegativeToTwosComplement(integerNum);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid integer format: " + decimalStr);
+            }
+        }
+
         String integerBinary = "0";
         String fractionalBinary = "";
 
@@ -26,7 +46,7 @@ public class DecimalToBinaryConverter {
             if (!parts[0].isEmpty()) {
                 try {
                     int integerNum = Integer.parseInt(parts[0]);
-                    integerBinary = convertIntegerToBinary(integerNum);
+                    integerBinary = convertPositiveInteger(integerNum);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException("Invalid integer part: " + parts[0]);
                 }
@@ -43,7 +63,7 @@ public class DecimalToBinaryConverter {
         } else {
             try {
                 int integerNum = Integer.parseInt(decimalStr);
-                integerBinary = convertIntegerToBinary(integerNum);
+                integerBinary = convertPositiveInteger(integerNum);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid decimal number: " + decimalStr);
             }
@@ -56,8 +76,7 @@ public class DecimalToBinaryConverter {
         }
     }
 
-    // Converts integer part using repeated division by 2
-    private String convertIntegerToBinary(int n) {
+    private String convertPositiveInteger(int n) {
         if (n == 0) {
             return "0";
         }
@@ -69,7 +88,20 @@ public class DecimalToBinaryConverter {
         return binary;
     }
 
-    // Converts fractional part using repeated multiplication by 2
+    private String convertNegativeToTwosComplement(int n) {
+        // Step 1: Get positive binary from absolute value
+        String positiveBinary = convertPositiveInteger(-n);
+
+        // Step 2: Pad to 8 bits
+        String padded = padToWidth(positiveBinary);
+
+        // Step 3: Invert bits (One's Complement)
+        String inverted = invertBits(padded);
+
+        // Step 4: Add one
+        return addOne(inverted);
+    }
+
     private String convertFractionToBinary(double frac, int precision) {
         if (frac == 0) {
             return "";
@@ -88,5 +120,36 @@ public class DecimalToBinaryConverter {
             }
         }
         return binary;
+    }
+
+    private String padToWidth(String s) {
+        while (s.length() < BIT_WIDTH) {
+            s = "0" + s;
+        }
+        return s;
+    }
+
+    private String invertBits(String binary) {
+        StringBuilder result = new StringBuilder();
+        for (char bit : binary.toCharArray()) {
+            result.append(bit == '0' ? '1' : '0');
+        }
+        return result.toString();
+    }
+
+    private String addOne(String binary) {
+        char[] bits = binary.toCharArray();
+        int carry = 1;
+
+        for (int i = bits.length - 1; i >= 0 && carry == 1; i--) {
+            if (bits[i] == '0') {
+                bits[i] = '1';
+                carry = 0;
+            } else {
+                bits[i] = '0';
+            }
+        }
+
+        return new String(bits);
     }
 }
