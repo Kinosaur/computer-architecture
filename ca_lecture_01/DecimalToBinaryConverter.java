@@ -1,11 +1,16 @@
 package ca_lecture_01;
 
+/**
+ * Converts positive decimal integers to binary representation.
+ * Uses the repeated division-by-2 algorithm (remainder method).
+ * Supports 64-bit positive integers (long).
+ */
 public class DecimalToBinaryConverter {
 
     /**
-     * Converts a positive decimal integer string to binary.
-     * @param decimalStr The decimal number as a string (e.g., "13")
-     * @return The binary string representation (e.g., "1101")
+     * Converts a decimal string to binary.
+     * @param decimalStr Positive decimal integer (e.g., "2147483648")
+     * @return Binary representation (e.g., "10000000000000000000000000000000")
      * @throws IllegalArgumentException if input is invalid
      */
     public String convert(String decimalStr) {
@@ -13,30 +18,32 @@ public class DecimalToBinaryConverter {
             throw new IllegalArgumentException("Input cannot be null or empty");
         }
 
-        // Check for non-digit characters
-        for (int i = 0; i < decimalStr.length(); i++) {
-            if (decimalStr.charAt(i) < '0' || decimalStr.charAt(i) > '9') {
-                throw new IllegalArgumentException("Input must be a positive integer.");
-            }
+        decimalStr = decimalStr.trim();
+        if (decimalStr.isEmpty()) {
+            throw new IllegalArgumentException("Input cannot be null or empty");
         }
 
-        int n;
+        long n;
         try {
-            n = Integer.parseInt(decimalStr);
+            n = Long.parseLong(decimalStr);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid decimal number: " + decimalStr);
+            throw new IllegalArgumentException("Input must be a valid positive integer");
+        }
+
+        if (n < 0) {
+            throw new IllegalArgumentException("Input must be a positive integer");
         }
 
         if (n == 0) {
             return "0";
         }
 
-        String binary = "";
+        StringBuilder binary = new StringBuilder();
         while (n > 0) {
-            int remainder = n % 2;
-            binary = remainder + binary; // Prepend the remainder
+            binary.append(n % 2);
             n = n / 2;
         }
-        return binary;
+
+        return binary.reverse().toString();
     }
 }
