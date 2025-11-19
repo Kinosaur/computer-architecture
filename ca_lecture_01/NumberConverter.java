@@ -3,79 +3,102 @@ package ca_lecture_01;
 import java.util.Scanner;
 
 /**
- * Console-based number conversion program for positive integers.
- * Displays a menu and calls specialized converter classes.
- * Supports 64-bit positive integers (long).
+ * Main class to run the Positive Integer Conversion Simulator.
  */
 public class NumberConverter {
 
     public static void main(String[] args) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            while (true) {
-                System.out.println("\n--- Positive Integer Conversion Simulator (64-bit) ---");
-                System.out.println("1. Decimal to Binary");
-                System.out.println("2. Binary to Decimal");
-                System.out.println("3. Decimal to Hexadecimal");
-                System.out.println("4. Binary to Hexadecimal");
-                System.out.println("5. Hexadecimal to Decimal");
-                System.out.println("6. Exit");
-                System.out.print("Choose an option (1-6): ");
+        Scanner scanner = new Scanner(System.in);
 
-                String choice = scanner.nextLine();
-                if (choice == null) {
-                    break;
-                }
+        // Outer Loop: The Main Menu
+        while (true) {
+            System.out.println("\n============================================");
+            System.out.println("   Number Converter (Positive Integers)     ");
+            System.out.println("============================================");
+            System.out.println("1. Decimal to Binary");
+            System.out.println("2. Binary to Decimal");
+            System.out.println("3. Decimal to Hexadecimal");
+            System.out.println("4. Binary to Hexadecimal");
+            System.out.println("5. Hexadecimal to Decimal");
+            System.out.println("6. Hexadecimal to Binary"); // NEW OPTION
+            System.out.println("7. Exit");
+            System.out.println("--------------------------------------------");
+            System.out.print("Choose option: ");
 
-                String input;
-                String result;
+            String choiceLine = scanner.nextLine();
+            if (choiceLine == null) break;
+            String choice = choiceLine.trim();
 
+            if (choice.equals("7")) {
+                System.out.println("Goodbye!");
+                break;
+            }
+
+            // Validate menu choice (Updated to 1-6)
+            if (!choice.matches("[1-6]")) {
+                System.out.println("Invalid option. Please enter 1-7.");
+                continue;
+            }
+
+            // Inner Loop: "Continue with current program"
+            boolean stayInCurrentMode = true;
+
+            while (stayInCurrentMode) {
                 try {
-                    switch (choice.trim()) {
+                    String input;
+                    String result;
+
+                    switch (choice) {
                         case "1" -> {
-                            System.out.print("Enter positive decimal integer: ");
+                            System.out.print("\n[Decimal -> Binary] Enter number: ");
                             input = scanner.nextLine();
-                            DecimalToBinaryConverter d2b = new DecimalToBinaryConverter();
-                            result = d2b.convert(input);
-                            System.out.println("Binary: " + result);
+                            result = new DecimalToBinaryConverter().convert(input);
+                            System.out.println(">> Binary: " + result);
                         }
                         case "2" -> {
-                            System.out.print("Enter positive binary integer: ");
+                            System.out.print("\n[Binary -> Decimal] Enter number: ");
                             input = scanner.nextLine();
-                            BinaryToDecimalConverter b2d = new BinaryToDecimalConverter();
-                            result = b2d.convert(input);
-                            System.out.println("Decimal: " + result);
+                            result = new BinaryToDecimalConverter().convert(input);
+                            System.out.println(">> Decimal: " + result);
                         }
                         case "3" -> {
-                            System.out.print("Enter positive decimal integer: ");
+                            System.out.print("\n[Decimal -> Hex] Enter number: ");
                             input = scanner.nextLine();
-                            DecimalToHexConverter d2h = new DecimalToHexConverter();
-                            result = d2h.convert(input);
-                            System.out.println("Hexadecimal: " + result);
+                            result = new DecimalToHexConverter().convert(input);
+                            System.out.println(">> Hexadecimal: " + result);
                         }
                         case "4" -> {
-                            System.out.print("Enter positive binary integer: ");
+                            System.out.print("\n[Binary -> Hex] Enter number: ");
                             input = scanner.nextLine();
-                            BinaryToHexConverter b2h = new BinaryToHexConverter();
-                            result = b2h.convert(input);
-                            System.out.println("Hexadecimal: " + result);
+                            result = new BinaryToHexConverter().convert(input);
+                            System.out.println(">> Hexadecimal: " + result);
                         }
                         case "5" -> {
-                            System.out.print("Enter positive hexadecimal integer (e.g., 1FE): ");
+                            System.out.print("\n[Hexadecimal -> Decimal] Enter number: ");
                             input = scanner.nextLine();
-                            HexToDecimalConverter h2d = new HexToDecimalConverter();
-                            result = h2d.convert(input);
-                            System.out.println("Decimal: " + result);
+                            result = new HexToDecimalConverter().convert(input);
+                            System.out.println(">> Decimal: " + result);
                         }
                         case "6" -> {
-                            System.out.println("Exiting. Goodbye!");
-                            return;
+                            System.out.print("\n[Hexadecimal -> Binary] Enter number: ");
+                            input = scanner.nextLine();
+                            result = new HexToBinaryConverter().convert(input);
+                            System.out.println(">> Binary: " + result);
                         }
-                        default -> System.out.println("Invalid choice. Please enter a number between 1 and 6.");
                     }
-                } catch (IllegalArgumentException e) {
+                } catch (Exception e) {
                     System.out.println("Error: " + e.getMessage());
+                }
+
+                // The "One-Step Confirmation"
+                System.out.print("\nConvert another number in this mode? (Y/N): ");
+                String answer = scanner.nextLine().trim();
+
+                if (!answer.equalsIgnoreCase("Y")) {
+                    stayInCurrentMode = false; // Breaks inner loop, returns to Main Menu
                 }
             }
         }
+        scanner.close();
     }
 }

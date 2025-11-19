@@ -1,62 +1,45 @@
 package ca_lecture_01;
 
 /**
- * Converts a positive hexadecimal integer string to a decimal string.
- * Uses positional notation (sum of weights 16^n).
- * Supports 64-bit positive integers (long).
+ * Converts Hexadecimal to Decimal using positional weights (1, 16, 256...).
  */
 public class HexToDecimalConverter {
 
-    /**
-     * Converts a positive hexadecimal integer string to decimal.
-     * @param hexStr The hex number as a string (e.g., "1FE" or "7FFFFFFFFFFFFFFF")
-     * @return The decimal string representation (e.g., "510")
-     * @throws IllegalArgumentException if input is invalid
-     */
     public String convert(String hexStr) {
-        if (hexStr == null || hexStr.trim().isEmpty()) {
-            throw new IllegalArgumentException("Input cannot be null or empty");
+        if (hexStr == null) return "0";
+
+        // Clean input: remove spaces and 'H' suffix if present
+        String hex = hexStr.trim().toUpperCase();
+        if (hex.endsWith("H")) {
+            hex = hex.substring(0, hex.length() - 1);
         }
-
-        hexStr = hexStr.trim();
-
-        if (hexStr.endsWith("H") || hexStr.endsWith("h")) {
-            hexStr = hexStr.substring(0, hexStr.length() - 1);
-        }
-
-        if (hexStr.isEmpty()) {
-            throw new IllegalArgumentException("Input cannot be null or empty");
-        }
-
-        hexStr = hexStr.toUpperCase();
-
-        if (hexStr.length() > 16) {
-            throw new IllegalArgumentException("Hexadecimal string too long (max 16 digits)");
-        }
-
-        if (hexStr.length() == 16 && hexStr.charAt(0) > '7') {
-            throw new IllegalArgumentException("Hexadecimal value exceeds positive long range");
-        }
+        if (hex.isEmpty()) return "0";
 
         long decimal = 0;
-        long weight = 1;
+        long weight = 1; // Starts at 16^0
 
-        for (int i = hexStr.length() - 1; i >= 0; i--) {
-            char c = hexStr.charAt(i);
-            int digit;
+        // Algorithm: Scan from Right to Left
+        for (int i = hex.length() - 1; i >= 0; i--) {
+            char c = hex.charAt(i);
+            int digitValue = getHexValue(c);
 
-            if (c >= '0' && c <= '9') {
-                digit = c - '0';
-            } else if (c >= 'A' && c <= 'F') {
-                digit = c - 'A' + 10;
-            } else {
-                throw new IllegalArgumentException("Invalid hex character: " + c);
-            }
+            decimal += (digitValue * weight);
 
-            decimal = decimal + (digit * weight);
-            weight = weight * 16;
+            // Next position is worth 16x more
+            weight *= 16;
         }
 
         return String.valueOf(decimal);
+    }
+
+    // Manual logic to get value 0-15 from char
+    private int getHexValue(char c) {
+        if (c >= '0' && c <= '9') {
+            return c - '0'; // e.g., '5' - '0' = 5
+        } else if (c >= 'A' && c <= 'F') {
+            return c - 'A' + 10; // e.g., 'A' - 'A' + 10 = 10
+        } else {
+            throw new IllegalArgumentException("Invalid hex char: " + c);
+        }
     }
 }
