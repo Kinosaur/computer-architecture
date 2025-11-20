@@ -2,11 +2,11 @@ package ca_lecture_01;
 
 /**
  * Converts Decimal to Hexadecimal using repeated division by 16.
- * Uses a manual lookup array for 0-15 -> 0-F.
+ * Manual lookup array is used to map 10-15 to A-F.
  */
 public class DecimalToHexConverter {
 
-    // Manual mapping for 0-15
+    // Manual mapping for remainders 0-15
     private static final char[] HEX_CHARS = {
             '0', '1', '2', '3', '4', '5', '6', '7',
             '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
@@ -29,12 +29,17 @@ public class DecimalToHexConverter {
 
         // Algorithm: Repeated Division by 16
         while (n > 0) {
+            // Step A: Find remainder (0-15)
             int remainder = (int) (n % 16);
-            // Map remainder (0-15) to char (0-F) manually
+
+            // Step B: Map remainder to Hex Character (e.g., 10 -> 'A')
             hex.append(HEX_CHARS[remainder]);
+
+            // Step C: Divide number by 16 for next step
             n = n / 16;
         }
 
+        // Step D: Reverse the string (results came bottom-to-top)
         return hex.reverse().toString();
     }
 }

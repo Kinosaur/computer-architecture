@@ -2,15 +2,11 @@ package ca_lecture_01;
 
 import java.util.Scanner;
 
-/**
- * Main class to run the Positive Integer Conversion Simulator.
- */
 public class NumberConverter {
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        // Outer Loop: The Main Menu
         while (true) {
             System.out.println("\n============================================");
             System.out.println("   Number Converter (Positive Integers)     ");
@@ -34,13 +30,11 @@ public class NumberConverter {
                 break;
             }
 
-            // Validate menu choice (Updated to 1-6)
             if (!choice.matches("[1-6]")) {
                 System.out.println("Invalid option. Please enter 1-7.");
                 continue;
             }
 
-            // Inner Loop: "Continue with current program"
             boolean stayInCurrentMode = true;
 
             while (stayInCurrentMode) {
@@ -74,13 +68,13 @@ public class NumberConverter {
                             System.out.println(">> Hexadecimal: " + result);
                         }
                         case "5" -> {
-                            System.out.print("\n[Hexadecimal -> Decimal] Enter number: ");
+                            System.out.print("\n[Hex -> Decimal] Enter number: ");
                             input = scanner.nextLine();
                             result = new HexToDecimalConverter().convert(input);
                             System.out.println(">> Decimal: " + result);
                         }
                         case "6" -> {
-                            System.out.print("\n[Hexadecimal -> Binary] Enter number: ");
+                            System.out.print("\n[Hex -> Binary] Enter number: ");
                             input = scanner.nextLine();
                             result = new HexToBinaryConverter().convert(input);
                             System.out.println(">> Binary: " + result);
@@ -90,12 +84,11 @@ public class NumberConverter {
                     System.out.println("Error: " + e.getMessage());
                 }
 
-                // The "One-Step Confirmation"
                 System.out.print("\nConvert another number in this mode? (Y/N): ");
                 String answer = scanner.nextLine().trim();
 
                 if (!answer.equalsIgnoreCase("Y")) {
-                    stayInCurrentMode = false; // Breaks inner loop, returns to Main Menu
+                    stayInCurrentMode = false;
                 }
             }
         }
