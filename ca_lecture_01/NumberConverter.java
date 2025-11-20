@@ -20,7 +20,7 @@ public class NumberConverter {
             System.out.println("3. Decimal to Hexadecimal");
             System.out.println("4. Binary to Hexadecimal");
             System.out.println("5. Hexadecimal to Decimal");
-            System.out.println("6. Hexadecimal to Binary"); // NEW OPTION
+            System.out.println("6. Hexadecimal to Binary");
             System.out.println("7. Exit");
             System.out.println("--------------------------------------------");
             System.out.print("Choose option: ");
