@@ -64,13 +64,21 @@ public class CpuSimulator {
             case "sub" -> OP_SUB;
             case "mul" -> OP_MUL;
             case "div" -> OP_DIV;
-            default -> throw new IllegalArgumentException("Unknown mnemonic");
+            default -> throw new IllegalArgumentException("Unknown mnemonic: " + mnemonic);
         };
+
+        if (parts.length < 2 || !parts[1].startsWith("r")) {
+            throw new IllegalArgumentException("Missing or malformed destination register.");
+        }
 
         int destReg = Integer.parseInt(parts[1].substring(1));
 
         if ((opcode == OP_MUL || opcode == OP_DIV) && destReg == 7) {
             throw new IllegalArgumentException("r7 cannot be destination for MUL/DIV.");
+        }
+
+        if (parts.length < 3) {
+            throw new IllegalArgumentException("Missing second operand.");
         }
 
         int flag;
@@ -97,9 +105,7 @@ public class CpuSimulator {
     // ------------------------------------------------------------------------
     private int getCycleCost(int opcode) {
         return switch (opcode) {
-            case OP_MOV -> 1;
-            case OP_ADD -> 1;
-            case OP_SUB -> 1;
+            case OP_MOV, OP_ADD, OP_SUB -> 1;
             case OP_MUL -> 4;
             case OP_DIV -> 8;
             default -> 0;
@@ -120,7 +126,6 @@ public class CpuSimulator {
                 : registers[operandField & 0x7];
 
         switch (opcode) {
-
             case OP_MOV:
                 registers[destReg] = value2;
                 executionLog.add(formatReg(destReg));
@@ -142,11 +147,8 @@ public class CpuSimulator {
                 registers[destReg] = (int) product;
 
                 executionLog.add(
-                        "r7:r" + destReg + " = " + product +
-                                " [" + to64BitBinary(product) + "]"
+                        String.format("r7: r%d = %d [%s]", destReg, product, to32BitBinary((int)product))
                 );
-                executionLog.add(formatReg(7));
-                executionLog.add(formatReg(destReg));
                 break;
 
             case OP_DIV:
@@ -157,13 +159,9 @@ public class CpuSimulator {
                     registers[7] = remainder;
 
                     executionLog.add(
-                            String.format(
-                                    "r%d = %d [%s]   r7 = %d [%s]",
-                                    destReg,
-                                    registers[destReg],
-                                    to32BitBinary(registers[destReg]),
-                                    registers[7],
-                                    to32BitBinary(registers[7])
+                            String.format("r%d = %d [%s] r7: %d [%s]",
+                                    destReg, registers[destReg], to32BitBinary(registers[destReg]),
+                                    registers[7], to32BitBinary(registers[7])
                             )
                     );
                 } else {
@@ -179,19 +177,98 @@ public class CpuSimulator {
     }
 
     // ------------------------------------------------------------------------
+    // Part II: Pipelined Execution & Hazard Detection
+    // ------------------------------------------------------------------------
+    public void simulatePipeline(List<Integer> memoryList, List<String> programList, Scanner scanner) {
+        System.out.println("\nPipelined Execution of the Program");
+        System.out.println("====================================================\n");
+        System.out.println("It is assumed that the CPU has 4-pipeline stages: IF (Instruction Fetch) ID (Instruction decoding), \nEX (Execution) and WB (Write back). And each stage completes within one clock cycle and RAW hazard (any) \nwill be solved with FORWARDING (from the o/p register of ALU to the i/p of \nnext instruction's ALU stage) without causing any stall.\n");
+
+        int n = 0;
+        for (int instr : memoryList) {
+            if (((instr >>> OPCODE_SHIFT) & 0x3F) == OP_END) break;
+            n++;
+        }
+
+        if (n == 0) return;
+
+        System.out.print("               ");
+        for (int i = 1; i <= n + 3; i++) {
+            System.out.printf("%-5d", i);
+        }
+        System.out.println();
+
+        for (int i = 0; i < n; i++) {
+            String decoded = formatDecoded(programList.get(i));
+            String prefix = String.format("%d %s :", i, decoded);
+            System.out.printf("%-15s", prefix);
+
+            for (int space = 0; space < i; space++) {
+                System.out.print("     ");
+            }
+            System.out.println("IF | ID | EX | WB");
+        }
+
+        int pipelineCycles = n + 4 - 1;
+        System.out.println("\nPipelined execution took " + pipelineCycles + " clock cycles for the program execution.\n");
+
+        System.out.println("RAW hazard details:\n");
+        boolean hazardFound = false;
+
+        for (int i = 1; i < n; i++) {
+            int currentInstr = memoryList.get(i);
+            int currentOpcode = (currentInstr >>> OPCODE_SHIFT) & 0x3F;
+            int currentDest = (currentInstr >>> REG_SHIFT) & 0x7;
+            int currentFlag = (currentInstr >>> FLAG_SHIFT) & 0x1;
+            int currentSrc = currentInstr & 0x7;
+
+            int prevInstr = memoryList.get(i - 1);
+            int prevOpcode = (prevInstr >>> OPCODE_SHIFT) & 0x3F;
+            int prevDest = (prevInstr >>> REG_SHIFT) & 0x7;
+
+            List<Integer> registersWritten = new ArrayList<>();
+            registersWritten.add(prevDest);
+            if (prevOpcode == OP_MUL || prevOpcode == OP_DIV) {
+                registersWritten.add(7);
+            }
+
+            List<Integer> registersRead = new ArrayList<>();
+            if (currentOpcode != OP_MOV) {
+                registersRead.add(currentDest);
+            }
+            if (currentFlag == 0) {
+                registersRead.add(currentSrc);
+            }
+
+            for (int readReg : registersRead) {
+                if (registersWritten.contains(readReg)) {
+                    System.out.printf("r%d in instructions %d and %d caused RAW hazard and is solved by forwarding.\n",
+                            readReg, i, i + 1);
+                    hazardFound = true;
+                }
+            }
+        }
+
+        if (!hazardFound) {
+            System.out.println("No RAW hazards detected.");
+        }
+
+        System.out.print("\nPress 'y' to continue or 'n' to stop the simulation : ");
+        String response = scanner.nextLine().trim();
+        if (response.equalsIgnoreCase("n")) {
+            System.exit(0);
+        }
+    }
+
+    // ------------------------------------------------------------------------
     // Formatting Helpers
     // ------------------------------------------------------------------------
     private String formatReg(int r) {
-        return String.format("r%d = %d [%s]",
-                r, registers[r], to32BitBinary(registers[r]));
+        return String.format("r%d = %d [%s]", r, registers[r], to32BitBinary(registers[r]));
     }
 
     private String to32BitBinary(int value) {
         return String.format("%32s", Integer.toBinaryString(value)).replace(' ', '0');
-    }
-
-    private String to64BitBinary(long value) {
-        return String.format("%64s", Long.toBinaryString(value)).replace(' ', '0');
     }
 
     public String formatInstructionBinary(int instruction) {
@@ -211,7 +288,8 @@ public class CpuSimulator {
     }
 
     public void printExecutionLog() {
-        System.out.println("\nAfter the program execution contents of the registers are.....\n");
+        System.out.println("\nValues of registers after the execution of the instruction set:");
+        System.out.println("During the execution of the above code sequence, the values of registers would be varied in the following way:");
         for (String line : executionLog) {
             System.out.println(line);
         }
@@ -219,9 +297,13 @@ public class CpuSimulator {
     }
 
     public void printCPI() {
-        double cpi = (double) totalCycles / instructionCount;
-        System.out.println("CPI of the program........");
-        System.out.printf("CPI = %.2f\n", cpi);
+        if (instructionCount > 0) {
+            double cpi = (double) totalCycles / instructionCount;
+            System.out.println("CPI of the program........");
+            System.out.printf("CPI = %.2f\n", cpi);
+        } else {
+            System.out.println("CPI = 0.00");
+        }
     }
 
     // ------------------------------------------------------------------------
@@ -244,19 +326,22 @@ public class CpuSimulator {
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) continue;
 
-            int encoded = cpu.assemble(input);
-            programList.add(input);
-            memoryList.add(encoded);
-            lineCount++;
+            try {
+                int encoded = cpu.assemble(input);
+                programList.add(input);
+                memoryList.add(encoded);
+                lineCount++;
 
-            if (input.toLowerCase().startsWith("end")) break;
+                if (input.toLowerCase().startsWith("end")) break;
+            } catch (IllegalArgumentException e) {
+                System.out.println(e.getMessage());
+                System.out.println("Please try again.");
+            }
         }
 
-        scanner.close();
-
         System.out.println("\nProgram Assembly Complete. Commencing Execution...\n");
-        System.out.println("PC      Decoded:                 Encoded instructions (32-bit):            Clock cycles");
-        System.out.println("----------------------------------------------------------------------------------------");
+        System.out.printf("%-10s %-18s %-36s %s\n", "PC", "Decoded:", "Encoded instructions (32-bit):", "Clock cycles");
+        System.out.println("--------------------------------------------------------------------------------");
 
         int pc = 0;
         while (pc < memoryList.size()) {
@@ -267,7 +352,7 @@ public class CpuSimulator {
             if (cycles == -1) break;
 
             System.out.printf(
-                    "PC[%d] -> %-20s :  %-40s %d\n",
+                    "PC[%d] ->   %-15s :  %-36s %d\n",
                     pc,
                     cpu.formatDecoded(decoded),
                     cpu.formatInstructionBinary(instruction),
@@ -279,5 +364,8 @@ public class CpuSimulator {
 
         cpu.printExecutionLog();
         cpu.printCPI();
+
+        cpu.simulatePipeline(memoryList, programList, scanner);
+        scanner.close();
     }
 }
